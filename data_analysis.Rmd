@@ -1,0 +1,111 @@
+---
+title: "Art Data Analysis"
+author: "Jens Laufer"
+date: "17 2 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, message = F, warning = F)
+```
+```{r}
+library(tidyverse)
+library(glue)
+library(mongolite)
+library(jsonlite)
+library(ggthemes)
+library(bbplot)
+library(scales)
+library(ggrepel)
+```
+
+```{r}
+con <- mongo("pieces", url="mongodb://localhost/pieces")
+```
+
+```{r}
+data <- con$find("{}") %>% 
+  jsonlite::flatten() %>% 
+  as_tibble() %>% 
+  filter(year !=  0) 
+```
+```{r}
+data %>% write_csv("art_pieces.csv")
+```
+
+
+```{r}
+data %>% 
+  filter(!is.na(class)) %>% 
+  count()
+```
+
+```{r}
+data %>% 
+  glimpse()
+```
+
+
+
+```{r}
+data %>% 
+  filter(!is.na(highest_price)) %>% 
+  arrange(-highest_price) %>% 
+  group_by(artist) %>% 
+  summarise(sum_highest=sum(highest_price)) %>% 
+  arrange(-sum_highest)
+```
+```{r}
+data %>% 
+  select(-year, -artist_id, -id) %>% 
+  select_if(is.numeric) %>% 
+  gather(key = "feature", value = "value") %>% 
+  filter(!is.na(value)) %>% 
+  ggplot(aes(x = value, y = 0)) +
+  geom_jitter() +
+  scale_y_continuous(labels = comma) +
+  facet_wrap(~feature,scales = "free")
+```
+
+
+
+
+```{r}
+data %>% 
+  mutate(Label=if_else(highest_price > 20000, artist, "")) %>% 
+  ggplot(aes(x = highest_price, y=0)) +
+  geom_boxplot() +
+  scale_x_continuous(labels = comma) +
+  geom_label_repel(aes(label=Label))
+```
+
+
+```{r fig.height=10, fig.width=20}
+data %>% 
+  mutate(year_bucket=cut(year, 25, dig.lab=4)) %>% 
+  group_by(year_bucket) %>%
+  summarise(num=n()) %>% 
+  ggplot(aes(x = reorder(year_bucket,num), y=num)) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(labels = comma, trans = "log10") +
+  coord_flip() +
+  bbc_style()
+```
+```{r}
+data %>% 
+  group_by(artist) %>% 
+  summarise(num=n()) %>% 
+  arrange(-num)
+```
+
+```{r}
+data %>% 
+  filter(artist=="Gaines, Charles")
+```
+
+
+```{r}
+con <- mongo("fs.files", url="mongodb://localhost/pieces")
+con$find('{"doc_type":"details"}')
+```
+
