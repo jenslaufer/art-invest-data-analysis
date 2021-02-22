@@ -6,7 +6,7 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = F, message = F, warning = F)
+knitr::opts_chunk$set(echo = F, message = F, warning = T)
 ```
 ```{r}
 library(tidyverse)
@@ -65,7 +65,7 @@ data %>%
 
 
 ```{r}
-data %>% 
+missingsValues <- data %>% select(-contains("_unit")) %>%
   mutate(row=row_number()) %>% 
   gather(-row, key="feature", value = "value") %>% 
   mutate(isNa=is.na(value)) %>% 
@@ -73,6 +73,37 @@ data %>%
   mutate(total=n()) %>% 
   ungroup() %>% 
   select(-value) %>% 
+  group_by(feature,isNa,total) %>% 
+  summarise(n=n()) %>%
+  mutate(ratio=n/total*100) %>% 
+  select(feature, isNa, ratio)
+
+labels <- missingsValues %>% 
+  filter(isNa==F) %>% 
+  arrange(ratio) %>% 
+  pull(feature)
+
+
+ missingsValues %>% 
+  ggplot(aes(x = feature, y=ratio, fill=isNa, label=paste0(round(ratio, 2),"%")))+
+  geom_bar(stat = 'identity') +
+  geom_text(position=position_stack(vjust=0.5)) +
+  scale_x_discrete(limits=labels) +
+  coord_flip()
+```
+
+
+```{r}
+data %>% 
+  mutate(row=row_number()) %>% 
+  gather(-row, key="feature", value = "value") %>% 
+  mutate(isNa=is.na(value)) %>% 
+  group_by(feature) %>% 
+  mutate(total=n()) %>% 
+  ungroup() %>% 
+  select(-value) %>%
+  group_by(feature) %>% 
+  slice(228000) %>% 
   ggplot(aes(x=feature, y=row, fill=isNa))+
   geom_raster()+
   coord_flip()
@@ -146,10 +177,56 @@ data %>%
 
 ```{r}
 data %>% 
-  drop_na() %>% 
   select(-year, -artist_id, -id) %>% 
   select_if(is.numeric) %>% 
+  drop_na() %>% 
   cor() %>% 
   ggcorrplot(method = "circle")
+```
+```{r fig.height=10, fig.width=20}
+numericCols <- data %>% 
+  select(-year, -artist_id, -id) %>% 
+  select_if(is.numeric) %>% 
+  colnames()
+
+data %>% 
+  select(-year, -artist_id, -id) %>% 
+  select_if(is.numeric) %>% 
+  gather(-average_price, key="feature", value="value") %>% 
+  drop_na() %>% 
+  ggplot(aes(x = average_price, y=value)) +
+  geom_point(alpha=.2) +
+  geom_smooth()+
+  scale_y_continuous(trans = "log10") +
+  scale_x_continuous(trans = "log10") +
+  facet_wrap(~feature, scales = "free")
+  
+```
+```{r}
+data %>% 
+  arrange(-area) %>% 
+  head(10)
+```
+
+
+```{r}
+data %>% 
+  select_if(negate(is.numeric)) %>% 
+  select(-paper, -released, -artwork, -artist) %>% 
+  select(-contains("_unit")) %>% 
+  bind_cols(data %>% select(average_price)) %>% 
+  filter(!is.na(average_price)) %>% 
+  gather(-average_price, key = "feature", value = "value") %>% 
+  ggplot(aes(x = value, y=average_price))+
+  geom_boxplot() +
+  scale_y_continuous(trans = "log10", labels = comma) +
+  facet_wrap(~feature)
+```
+
+```{r}
+data %>% 
+ ggplot(aes(x = markings, y=average_price))+
+  geom_boxplot()+
+  scale_y_continuous(trans = "log10", labels = comma)
 ```
 
