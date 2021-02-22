@@ -220,13 +220,14 @@ data %>%
   ggplot(aes(x = value, y=average_price))+
   geom_boxplot() +
   scale_y_continuous(trans = "log10", labels = comma) +
-  facet_wrap(~feature)
+  facet_wrap(~feature, scales = "free")
 ```
 
-```{r}
+```{r fig.height=10, fig.width=20}
 data %>% 
- ggplot(aes(x = markings, y=average_price))+
-  geom_boxplot()+
+ ggplot(aes(x = technique, y=average_price))+
+  geom_jitter(alpha=.1) +
+  geom_boxplot(alpha=.7)+
   scale_y_continuous(trans = "log10", labels = comma)
 ```
 
