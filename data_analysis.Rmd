@@ -18,6 +18,7 @@ library(bbplot)
 library(scales)
 library(ggrepel)
 library(ggcorrplot)
+library(forcats)
 ```
 
 ```{r}
@@ -209,25 +210,83 @@ data %>%
 ```
 
 
+
+
+
 ```{r}
-data %>% 
-  select_if(negate(is.numeric)) %>% 
-  select(-paper, -released, -artwork, -artist) %>% 
-  select(-contains("_unit")) %>% 
-  bind_cols(data %>% select(average_price)) %>% 
-  filter(!is.na(average_price)) %>% 
-  gather(-average_price, key = "feature", value = "value") %>% 
-  ggplot(aes(x = value, y=average_price))+
-  geom_boxplot() +
-  scale_y_continuous(trans = "log10", labels = comma) +
-  facet_wrap(~feature, scales = "free")
+plotQuantQual <-
+  function(data,
+           var1,
+           var2,
+           .trans = "log10") {
+    data %>%
+      drop_na(!!sym(var1), !!sym(var2)) %>%
+      ggplot(aes(
+        x = !!sym(var2),
+        y = !!sym(var1)
+      )) +
+      geom_jitter(alpha = .3) +
+      scale_x_discrete(
+        limits = data %>%
+          group_by(!!sym(var2)) %>%
+          summarise(median = median(!!sym(var1), na.rm = T)) %>%
+          arrange(-median) %>%
+          pull(!!sym(var2))
+      ) +
+      scale_y_continuous(trans = .trans, labels = comma) +
+      geom_boxplot(alpha = .7)
+  }
+
+plotQuantQuant <-
+  function(data,
+           var1,
+           var2,
+           .transVar1 = "identity", .transVar2= "identity") {
+    data %>%
+      drop_na(!!sym(var1), !!sym(var2)) %>%
+      ggplot(aes(
+        x = !!sym(var2),
+        y = !!sym(var1)
+      )) +
+      geom_point(alpha = .3) +
+      scale_y_continuous(trans = .transVar2, labels = comma) +
+      scale_x_continuous(trans = .transVar1, labels = comma, guide = guide_axis(angle = 45))
+  }
+
+
+plotQualQual <-
+  function(data,
+           var1,
+           var2,
+           .trans = "identity") {
+    data %>%
+      drop_na(!!sym(var1), !!sym(var2)) %>%
+      group_by(!!sym(var1), !!sym(var2)) %>%
+      summarise(num=n()) %>% 
+      ungroup() %>% 
+      ggplot(aes(
+        x = !!sym(var2),
+        y = !!sym(var1),
+        fill = num
+      )) +
+      scale_fill_continuous(trans=.trans) +
+      scale_x_discrete(guide = guide_axis(angle = 45)) +
+      geom_raster() 
+  }
 ```
 
 ```{r fig.height=10, fig.width=20}
-data %>% 
- ggplot(aes(x = technique, y=average_price))+
-  geom_jitter(alpha=.1) +
-  geom_boxplot(alpha=.7)+
-  scale_y_continuous(trans = "log10", labels = comma)
+list(quantitatives=c("average_price","average_price","average_price"),qualitatives=c("technique","class","status")) %>% 
+pmap(~data %>% 
+  plotQuantQual(..1, ..2))
+
 ```
+
+```{r}
+list(quantitatives=c("class"),qualitatives=c("technique")) %>% 
+pmap(~data %>% 
+  plotQualQual(..1, ..2), .trans="log10")
+```
+
+
 
