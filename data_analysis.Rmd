@@ -218,22 +218,20 @@ plotQuantQual <-
   function(data,
            var1,
            var2,
-           .trans = "log10") {
+           .transVar1 = "log10") {
     data %>%
-      drop_na(!!sym(var1), !!sym(var2)) %>%
-      ggplot(aes(
-        x = !!sym(var2),
-        y = !!sym(var1)
-      )) +
-      geom_jitter(alpha = .3) +
-      scale_x_discrete(
+      drop_na(!!sym(var1),!!sym(var2)) %>%
+      ggplot(aes(x = !!sym(var2),
+                 y = !!sym(var1))) +
+      geom_jitter(alpha = .3, color="#4e79a7") +
+      scale_x_discrete(guide = guide_axis(angle = 45),
         limits = data %>%
           group_by(!!sym(var2)) %>%
           summarise(median = median(!!sym(var1), na.rm = T)) %>%
           arrange(-median) %>%
           pull(!!sym(var2))
       ) +
-      scale_y_continuous(trans = .trans, labels = comma) +
+      scale_y_continuous(trans = .transVar1, labels = comma) +
       geom_boxplot(alpha = .7)
   }
 
@@ -241,16 +239,17 @@ plotQuantQuant <-
   function(data,
            var1,
            var2,
-           .transVar1 = "identity", .transVar2= "identity") {
+           .transVar1 = "identity",
+           .transVar2 = "identity") {
     data %>%
-      drop_na(!!sym(var1), !!sym(var2)) %>%
-      ggplot(aes(
-        x = !!sym(var2),
-        y = !!sym(var1)
-      )) +
-      geom_point(alpha = .3) +
+      drop_na(!!sym(var1),!!sym(var2)) %>%
+      ggplot(aes(x = !!sym(var2),
+                 y = !!sym(var1))) +
+      geom_point(alpha = .3, color="#4e79a7") +
       scale_y_continuous(trans = .transVar2, labels = comma) +
-      scale_x_continuous(trans = .transVar1, labels = comma, guide = guide_axis(angle = 45))
+      scale_x_continuous(trans = .transVar1,
+                         labels = comma,
+                         guide = guide_axis(angle = 45))
   }
 
 
@@ -260,33 +259,46 @@ plotQualQual <-
            var2,
            .trans = "identity") {
     data %>%
-      drop_na(!!sym(var1), !!sym(var2)) %>%
-      group_by(!!sym(var1), !!sym(var2)) %>%
-      summarise(num=n()) %>% 
-      ungroup() %>% 
+      drop_na(!!sym(var1),!!sym(var2)) %>%
+      group_by(!!sym(var1),!!sym(var2)) %>%
+      summarise(num = n()) %>%
+      ungroup() %>%
       ggplot(aes(
         x = !!sym(var2),
         y = !!sym(var1),
         fill = num
       )) +
-      scale_fill_continuous(trans=.trans) +
+      scale_fill_continuous(trans = .trans) +
       scale_x_discrete(guide = guide_axis(angle = 45)) +
-      geom_raster() 
+      geom_raster()
   }
+
+plotBivariate <- function(data, var1, var2, transVar1="identity", transVar2="identity") {
+  var1Numeric <- (data %>% mutate(numeric=is.numeric(!!sym(var1))) %>% pull(numeric))[1]
+  var2Numeric <- (data %>% mutate(numeric=is.numeric(!!sym(var2))) %>% pull(numeric))[1]
+  
+  if (var2Numeric &
+      var1Numeric) {
+    data %>%
+      plotQuantQuant(var1, var2, transVar1, transVar2)
+  } else if (!var1Numeric & !var2Numeric) {
+    data %>% plotQualQual(var1, var2, transVar1)
+  } else if (var1Numeric & !var2Numeric) {
+    data %>% plotQuantQual(var1, var2, transVar1)
+  } else {
+    data %>% plotQuantQual(var2, var1, transVar1)
+  }
+}
+
 ```
 
-```{r fig.height=10, fig.width=20}
-list(quantitatives=c("average_price","average_price","average_price"),qualitatives=c("technique","class","status")) %>% 
-pmap(~data %>% 
-  plotQuantQual(..1, ..2))
-
-```
 
 ```{r}
-list(quantitatives=c("class"),qualitatives=c("technique")) %>% 
-pmap(~data %>% 
-  plotQualQual(..1, ..2), .trans="log10")
+list(var1=c("class","average_price","average_price","average_price","average_price"),var2=c("technique","technique","class","status","collections"),transVar1=c("log10","log10","log10","log10","log10"), transVar2=c("log10","log10","log10","log10","log10")) %>% 
+  pmap(~data %>% 
+  plotBivariate(..1,..2,..3,..4))
 ```
+
 
 
 
