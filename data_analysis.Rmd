@@ -59,8 +59,8 @@ data <- con$find("{}") %>%
   separate(artist_firstname, c("artist_firstname2", "synonym2"), sep=" \\(") %>% 
   unite(artist,artist_firstname2, artist_surname2, sep=" ") %>% 
   mutate(artist=str_replace_all(artist,"NA",""), artist=str_trim(artist)) %>% 
-  unite(synonym, synonym1, synonym2, sep="") %>% 
-  mutate(pseudonym=str_replace_all(synonym,"\\)",""),synonym=str_replace_all(synonym,"NA",""), synonym=str_trim(artist))
+  unite(pseudonym, synonym1, synonym2, sep="") %>% 
+  mutate(pseudonym=str_replace_all(pseudonym,"\\)",""),pseudonym=str_replace_all(pseudonym,"NA",""), pseudonym=str_trim(pseudonym))
 
 ```
 
@@ -328,6 +328,12 @@ data %>%
 ```
 
 
+```{r}
+data %>% 
+  filter(artist=="Mr. Brainwash", str_detect(artwork,"Chaplin")) %>% 
+  select(year, artwork, average_price, lowest_price, highest_price, sold, markings) %>% 
+  arrange(-average_price)
+```
 
 
 
@@ -361,11 +367,5 @@ plots <- data %>%
   map(~ data %>% plotValuableArtists(..1))
 
 ```
-
-```{r}
-
-plot %>% 
-```
-
 
 
