@@ -74,7 +74,7 @@ data <- con$find("{}") %>%
 
 
 ```{r}
-data %>% write_csv("art_pieces.csv")
+data %>% write_csv("art_pieces.csv", na = "")
 ```
 
 
