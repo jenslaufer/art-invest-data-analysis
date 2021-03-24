@@ -38,29 +38,36 @@ tibble(artist=c("Natural","Heart, Brandon","Status Serigraph (Justin Helton)", "
 
 
 ```{r}
+now <- Sys.time()
 data <- con$find("{}") %>%
   jsonlite::flatten() %>%
   as_tibble() %>%
   filter(year !=  0) %>%
   separate(size, c("width", "height"), sep = " X ") %>%
   mutate(
-    width = as.numeric(width)*2.54,
-    height = as.numeric(height)*2.54,
+    width = as.numeric(width) * 2.54,
+    height = as.numeric(height) * 2.54,
     width_unit = "cm",
     height_unit = "cm",
     run = as.numeric(run),
     area = width * height,
     collections = as.numeric(collections),
     sold = as.numeric(sold)
-  ) %>% 
-  mutate(released=as.Date(as.POSIXct(as.numeric(released), origin="1970-01-01")))  %>% 
-  separate(artist, c("artist_surname", "artist_firstname"), sep=", ") %>% 
-  separate(artist_surname, c("artist_surname2", "synonym1"), sep=" \\(") %>%   
-  separate(artist_firstname, c("artist_firstname2", "synonym2"), sep=" \\(") %>% 
-  unite(artist,artist_firstname2, artist_surname2, sep=" ") %>% 
-  mutate(artist=str_replace_all(artist,"NA",""), artist=str_trim(artist)) %>% 
-  unite(pseudonym, synonym1, synonym2, sep="") %>% 
-  mutate(pseudonym=str_replace_all(pseudonym,"\\)",""),pseudonym=str_replace_all(pseudonym,"NA",""), pseudonym=str_trim(pseudonym))
+  ) %>%
+  mutate(released = as.Date(as.POSIXct(as.numeric(released), origin = "1970-01-01")))  %>%
+  separate(artist, c("artist_surname", "artist_firstname"), sep = ", ") %>%
+  separate(artist_surname, c("artist_surname2", "synonym1"), sep = " \\(") %>%
+  separate(artist_firstname, c("artist_firstname2", "synonym2"), sep = " \\(") %>%
+  unite(artist, artist_firstname2, artist_surname2, sep = " ") %>%
+  mutate(artist = str_replace_all(artist, "NA", ""),
+         artist = str_trim(artist)) %>%
+  unite(pseudonym, synonym1, synonym2, sep = "") %>%
+  mutate(
+    pseudonym = str_replace_all(pseudonym, "\\)", ""),
+    pseudonym = str_replace_all(pseudonym, "NA", ""),
+    pseudonym = str_trim(pseudonym)
+  ) %>%
+  mutate(`_created` = now,  `_updated` = now)
 
 ```
 
